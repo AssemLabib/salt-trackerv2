@@ -43,6 +43,17 @@ const stsCfgNew = {
   'On Hold':           { bg: '#F3E8FF', text: '#6B21A8' },
 };
 
+// ── Mobile detection ─────────────────────────────────────────────────────────
+function useIsMobile() {
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
+  React.useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return isMobile;
+}
+
 // Google Fonts injected once
 if (!document.getElementById('salt-fonts')) {
   const link = document.createElement('link');
@@ -180,7 +191,7 @@ function TaskRow({ task, onUpdate, onDelete, onToggleWeek, onToggleComplete, isO
               Flag this week
             </label>
           </div>
-          <div style={{ display:'flex', gap:6 }}>
+          <div style={{ display:'flex', gap:6, flexWrap:'wrap', justifyContent:isMobile?'flex-start':'flex-end' }}>
             <button onClick={()=>setEditing(false)} style={btn('ghost')}>Cancel</button>
             <button onClick={save} style={btn('primary')}>Save</button>
           </div>
@@ -268,9 +279,9 @@ function ConsultantBlock({ c, secColor, onUpdate, onAddTask, onUpdateTask, onDel
   return (
     <div onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>{setHovered(false);setConfirmDel(false);}}
       style={{ borderBottom:'1px solid #EEF0F5', background:twk>0?'rgba(201,168,76,0.04)':'white', transition:'background 0.15s' }}>
-      <div style={{ display:'grid', gridTemplateColumns:'200px 1fr 1fr', minHeight:56 }}>
+      <div style={{ display:'grid', gridTemplateColumns:window.innerWidth<768?'1fr':'200px 1fr 1fr', minHeight:'auto' }}>
         {/* Col 1 */}
-        <div style={{ padding:'10px 14px', borderRight:'1px solid #EEF0F5', background:twk>0?'rgba(201,168,76,0.07)':'#FAFBFC', display:'flex', flexDirection:'column', gap:4 }}>
+        <div style={{ padding:'10px 14px', borderRight:window.innerWidth>=768?'1px solid #EEF0F5':'none', borderBottom:window.innerWidth<768?'1px solid #EEF0F5':'none', background:twk>0?'rgba(201,168,76,0.07)':'#FAFBFC', display:'flex', flexDirection:'column', gap:4 }}>
           {editMeta ? (
             <>
               <input value={meta.label} onChange={e=>setMeta(d=>({...d,label:e.target.value}))} placeholder="Role/type" style={{ ...inputSty, fontWeight:700, color:secColor }} />
@@ -302,7 +313,7 @@ function ConsultantBlock({ c, secColor, onUpdate, onAddTask, onUpdateTask, onDel
           )}
         </div>
         {/* Col 2 */}
-        <div style={{ padding:'10px 14px', borderRight:'1px solid #EEF0F5' }}>
+        <div style={{ padding:'10px 14px', borderRight:window.innerWidth>=768?'1px solid #EEF0F5':'none', borderBottom:window.innerWidth<768?'1px solid #EEF0F5':'none' }}>
           {editMeta ? (
             <textarea value={meta.comments} onChange={e=>setMeta(d=>({...d,comments:e.target.value}))} placeholder="General comments, status notes, background info..." rows={4}
               style={{ fontFamily:F.body, fontSize:11, border:'1px solid #E5E7EB', borderRadius:5, padding:'5px 8px', outline:'none', resize:'vertical', width:'100%', boxSizing:'border-box', color:'#4B5563' }} />
@@ -469,11 +480,11 @@ function SectionBlock({ sec, consultants, purchaseDate, settlementDate, onUpdate
       </div>
       {!collapsed&&(
         <>
-          <div style={{ display:'grid', gridTemplateColumns:'200px 1fr 1fr', background:'#F8F9FD', borderBottom:'1px solid #EEF0F5' }}>
+          {!isMobile && <div style={{ display:'grid', gridTemplateColumns:'200px 1fr 1fr', background:'#F8F9FD', borderBottom:'1px solid #EEF0F5' }}>
             {['Consultant / Authority','General Comments','Action Items'].map((h,i)=>(
               <div key={h} style={{ padding:'6px 14px', fontSize:9, fontWeight:700, color:T.slateL, textTransform:'uppercase', letterSpacing:'0.1em', borderRight:i<2?'1px solid #EEF0F5':'none', fontFamily:F.body }}>{h}</div>
             ))}
-          </div>
+          </div>}
           {consultants.map(c=>(
             <ConsultantBlock key={c.id} c={c} secColor={sec.color}
               onUpdate={u=>onUpdateC(sec.id,c.id,u)} onDelete={()=>onDeleteC(sec.id,c.id)}
@@ -619,7 +630,7 @@ function Dashboard({ projects, onOpen }) {
   return (
     <div>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 }}>
-        <h2 style={{ margin:0, fontSize:22, color:T.navy, fontFamily:F.heading, fontWeight:400, letterSpacing:'-0.01em' }}>Team Dashboard</h2>
+        <h2 style={{ margin:0, fontSize:isMobile?18:22, color:T.navy, fontFamily:F.heading, fontWeight:400, letterSpacing:'-0.01em' }}>Team Dashboard</h2>
         <div style={{ display:'flex', gap:6 }}>
           {DASH_PEOPLE.map(p=>(
             <button key={p.id} onClick={()=>setFilterPerson(p.id)}
@@ -632,7 +643,7 @@ function Dashboard({ projects, onOpen }) {
           ))}
         </div>
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:`repeat(${peopleToShow.length},1fr)`, gap:16 }}>
+      <div style={{ display:'grid', gridTemplateColumns:isMobile?'1fr':`repeat(${peopleToShow.length},1fr)`, gap:isMobile?12:16 }}>
         {peopleToShow.map(pid=>{
           const person=PERSON_LIST.find(p=>p.id===pid);
           const tasks=getTasksForPerson(pid);
@@ -892,37 +903,63 @@ export default function App() {
     );
   }
 
+  const isMobile = useIsMobile();
+  const [navOpen, setNavOpen] = React.useState(false);
+
   return (
     <div style={{ fontFamily:F.body, background:T.bg, minHeight:'100vh' }}>
 
-      {/* ── Nav bar ── */}
-      <div style={{ background:T.navy, padding:'0 28px', display:'flex', alignItems:'center', borderBottom:`2px solid ${T.gold}`, boxShadow:'0 2px 20px rgba(10,15,46,0.4)' }}>
-        <div onClick={goHome} style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 0', cursor:'pointer' }}>
-          <img src={LOGO_URI} alt="SALT" style={{ width:44, height:44, objectFit:'contain', filter:'brightness(0) invert(1)' }} />
+      {/* ── Nav bar ── */}}
+      <div style={{ background:T.navy, padding:isMobile?'0 14px':'0 28px', display:'flex', alignItems:'center', borderBottom:`2px solid ${T.gold}`, boxShadow:'0 2px 20px rgba(10,15,46,0.4)', position:'sticky', top:0, zIndex:200 }}>
+        <div onClick={()=>{goHome();setNavOpen(false);}} style={{ display:'flex', alignItems:'center', gap:10, padding:isMobile?'8px 0':'12px 0', cursor:'pointer' }}>
+          <img src={LOGO_URI} alt="SALT" style={{ width:isMobile?32:44, height:isMobile?32:44, objectFit:'contain', filter:'brightness(0) invert(1)' }} />
           <div>
-            <div style={{ fontSize:16, fontWeight:400, color:T.white, letterSpacing:'0.15em', fontFamily:F.heading, lineHeight:1.1 }}>SALT</div>
-            <div style={{ fontSize:8, color:T.gold, fontWeight:700, letterSpacing:'0.2em', textTransform:'uppercase', fontFamily:F.body, marginTop:1 }}>Development Projects</div>
+            <div style={{ fontSize:isMobile?13:16, fontWeight:400, color:T.white, letterSpacing:'0.15em', fontFamily:F.heading, lineHeight:1.1 }}>SALT</div>
+            <div style={{ fontSize:7, color:T.gold, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', fontFamily:F.body, marginTop:1 }}>Development Projects</div>
           </div>
         </div>
         <div style={{ flex:1 }} />
-        {[{k:'thisweek',l:'★  This Week'},{k:'projects',l:'All Projects'},{k:'dashboard',l:'👥  Dashboard'}].map(({k,l})=>(
-          <button key={k} onClick={()=>{setPage(k);setActiveId(null);}}
-            style={{ padding:'10px 18px', marginLeft:2, border:'none', background:'transparent', cursor:'pointer', fontSize:12, fontWeight:600, fontFamily:F.body, letterSpacing:'0.02em', transition:'all 0.15s',
-              borderBottom:page===k&&!activeId?`2px solid ${T.gold}`:'2px solid transparent',
-              color:page===k&&!activeId?T.gold:'rgba(255,255,255,0.5)',
-            }}>{l}</button>
-        ))}
-        <div style={{ width:1, height:24, background:'rgba(255,255,255,0.08)', margin:'0 16px' }} />
-        <span style={{ fontSize:11, color:'rgba(255,255,255,0.25)', fontFamily:F.body }}>{today.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</span>
+        {isMobile ? (
+          <button onClick={()=>setNavOpen(v=>!v)}
+            style={{ background:'none', border:`1px solid rgba(255,255,255,0.2)`, borderRadius:6, padding:'7px 11px', cursor:'pointer', color:T.gold, fontSize:18, lineHeight:1, fontFamily:F.body }}>
+            {navOpen ? '✕' : '☰'}
+          </button>
+        ) : (
+          <>
+            {[{k:'thisweek',l:'★  This Week'},{k:'projects',l:'All Projects'},{k:'dashboard',l:'👥  Dashboard'}].map(({k,l})=>(
+              <button key={k} onClick={()=>{setPage(k);setActiveId(null);}}
+                style={{ padding:'10px 18px', marginLeft:2, border:'none', background:'transparent', cursor:'pointer', fontSize:12, fontWeight:600, fontFamily:F.body, letterSpacing:'0.02em', transition:'all 0.15s',
+                  borderBottom:page===k&&!activeId?`2px solid ${T.gold}`:'2px solid transparent',
+                  color:page===k&&!activeId?T.gold:'rgba(255,255,255,0.5)',
+                }}>{l}</button>
+            ))}
+            <div style={{ width:1, height:24, background:'rgba(255,255,255,0.08)', margin:'0 16px' }} />
+            <span style={{ fontSize:11, color:'rgba(255,255,255,0.25)', fontFamily:F.body }}>{today.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</span>
+          </>
+        )}
       </div>
 
-      <div style={{ maxWidth:1200, margin:'0 auto', padding:'28px 24px' }}>
+      {/* Mobile nav dropdown */}
+      {isMobile && navOpen && (
+        <div style={{ background:T.navy, borderBottom:`2px solid ${T.gold}`, position:'sticky', top:50, zIndex:199 }}>
+          {[{k:'thisweek',l:'★  This Week'},{k:'projects',l:'All Projects'},{k:'dashboard',l:'👥  Dashboard'}].map(({k,l})=>(
+            <button key={k} onClick={()=>{setPage(k);setActiveId(null);setNavOpen(false);}}
+              style={{ display:'block', width:'100%', padding:'14px 20px', border:'none', background:page===k&&!activeId?'rgba(201,168,76,0.1)':'transparent',
+                cursor:'pointer', fontSize:14, fontWeight:600, fontFamily:F.body, textAlign:'left',
+                color:page===k&&!activeId?T.gold:'rgba(255,255,255,0.75)',
+                borderLeft:page===k&&!activeId?`3px solid ${T.gold}`:'3px solid transparent',
+              }}>{l}</button>
+          ))}
+        </div>
+      )}
+
+      <div style={{ maxWidth:1200, margin:'0 auto', padding:isMobile?'16px 12px':'28px 24px' }}>
 
         {/* ════ THIS WEEK ════ */}
         {page==='thisweek'&&!activeId&&(
           <>
             {/* Hero */}
-            <div style={{ background:`linear-gradient(135deg, ${T.navy} 0%, ${T.navy2} 100%)`, borderRadius:16, padding:'28px 32px', marginBottom:24, display:'flex', alignItems:'center', gap:4, flexWrap:'wrap', boxShadow:'0 8px 32px rgba(10,15,46,0.2)', border:`1px solid ${T.navy3}` }}>
+            <div style={{ background:`linear-gradient(135deg, ${T.navy} 0%, ${T.navy2} 100%)`, borderRadius:isMobile?10:16, padding:isMobile?'16px 18px':'28px 32px', marginBottom:isMobile?14:24, display:'flex', flexDirection:isMobile?'column':'row', alignItems:isMobile?'stretch':'center', gap:isMobile?12:4, flexWrap:'wrap', boxShadow:'0 8px 32px rgba(10,15,46,0.2)', border:`1px solid ${T.navy3}` }}>
               <div style={{ flex:1, minWidth:220 }}>
                 <div style={{ fontSize:9, color:T.gold, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.2em', marginBottom:6, fontFamily:F.body }}>Week in Focus</div>
                 <div style={{ fontSize:22, fontWeight:400, color:T.white, marginBottom:3, fontFamily:F.heading, letterSpacing:'-0.01em' }}>{getWeekRange()}</div>
@@ -932,7 +969,7 @@ export default function App() {
                 </div>
                 <div style={{ marginTop:8, fontSize:10, color:'rgba(255,255,255,0.2)', fontFamily:F.body }}>Tasks auto-appear when due this week · Flag others with ★</div>
               </div>
-              <div style={{ display:'flex', gap:0 }}>
+              <div style={{ display:'flex', gap:0, justifyContent:isMobile?'space-between':'flex-start', borderTop:isMobile?`1px solid rgba(255,255,255,0.08)`:'none', paddingTop:isMobile?12:0 }}>
                 <StatPill label="Total"     value={total}     color={T.white}    filterId="All" />
                 <StatPill label="High ⚠"   value={high}      color="#FCA5A5"    filterId="High" />
                 <StatPill label="Done"      value={done}      color="#6EE7B7"    filterId="Done" />
@@ -985,7 +1022,7 @@ export default function App() {
         {page==='projects'&&!activeId&&(
           <>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 }}>
-              <h2 style={{ margin:0, fontSize:24, color:T.navy, fontFamily:F.heading, fontWeight:400, letterSpacing:'-0.01em' }}>All Projects</h2>
+              <h2 style={{ margin:0, fontSize:isMobile?18:24, color:T.navy, fontFamily:F.heading, fontWeight:400, letterSpacing:'-0.01em' }}>All Projects</h2>
               <button onClick={()=>setShowAdd(v=>!v)} style={{ ...btn('primary'), padding:'9px 20px', fontSize:13 }}>+ New Project</button>
             </div>
 
@@ -1007,7 +1044,7 @@ export default function App() {
               </div>
             )}
 
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(300px, 1fr))', gap:14 }}>
+            <div style={{ display:'grid', gridTemplateColumns:isMobile?'1fr':'repeat(auto-fill, minmax(300px, 1fr))', gap:isMobile?10:14 }}>
               {projects.map(p=><ProjectCard key={p.id} project={p} onOpen={openProject} />)}
             </div>
           </>
@@ -1020,7 +1057,7 @@ export default function App() {
         {page==='project'&&activeId&&activeProject&&(
           <>
             {/* Project header */}
-            <div style={{ background:`linear-gradient(135deg, ${T.navy} 0%, ${T.navy2} 100%)`, borderRadius:14, padding:'20px 26px', marginBottom:20, display:'flex', alignItems:'center', gap:14, boxShadow:'0 4px 20px rgba(10,15,46,0.15)', border:`1px solid ${T.navy3}` }}>
+            <div style={{ background:`linear-gradient(135deg, ${T.navy} 0%, ${T.navy2} 100%)`, borderRadius:isMobile?10:14, padding:isMobile?'12px 14px':'20px 26px', marginBottom:isMobile?12:20, display:'flex', flexWrap:'wrap', alignItems:'center', gap:isMobile?8:14, boxShadow:'0 4px 20px rgba(10,15,46,0.15)', border:`1px solid ${T.navy3}` }}>
               <button onClick={goBack} style={{ ...btn('dark'), padding:'6px 14px', fontSize:12, background:'rgba(255,255,255,0.08)', border:`1px solid ${T.navy4}`, color:T.slateL }}>← Back</button>
               <div style={{ width:1, height:24, background:T.navy4 }} />
               <div style={{ width:12, height:12, borderRadius:'50%', background:activeProject.color, boxShadow:`0 0 8px ${activeProject.color}` }} />
