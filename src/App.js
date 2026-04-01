@@ -2,12 +2,11 @@ import React, { useState, useMemo, useRef } from 'react';
 import {
   uid, mkTask, mkRow, buildProjects,
   PERSON_LIST, PRIORITIES, STATUSES, STAGES, SECTION_META,
-  priCfg, stsCfg,
-} from './data';
+  } from './data';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const T = {
-  navy:    '#0A0F2E',   // deepest navy
+  navy:    '#0A0F2E',   // deepest nav
   navy2:   '#111638',   // card backgrounds
   navy3:   '#1A2050',   // borders, subtle fills
   navy4:   '#242B5E',   // hover states
@@ -374,8 +373,7 @@ function MilestoneTimeline({ milestones, onUpdate, onAdd, onDelete }) {
 
         {milestones.map((ms, idx) => {
           const cfg = msCfg[ms.status] || msCfg['Upcoming'];
-          const isPast = ms.date && ms.date < today;
-          const isEditing = editingId === ms.id;
+                    const isEditing = editingId === ms.id;
           const daysUntil = ms.date ? Math.ceil((new Date(ms.date) - new Date()) / 86400000) : null;
 
           return (
