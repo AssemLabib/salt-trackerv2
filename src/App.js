@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useRef } from 'react';
+/* eslint-disable */
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import {
   uid, mkTask, mkRow, buildProjects,
   PERSON_LIST, PRIORITIES, STATUSES, STAGES, SECTION_META,
-  priCfg, stsCfg,
 } from './data';
+import { supabase } from './supabase';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const T = {
@@ -374,7 +375,6 @@ function MilestoneTimeline({ milestones, onUpdate, onAdd, onDelete }) {
 
         {milestones.map((ms, idx) => {
           const cfg = msCfg[ms.status] || msCfg['Upcoming'];
-          const isPast = ms.date && ms.date < today;
           const isEditing = editingId === ms.id;
           const daysUntil = ms.date ? Math.ceil((new Date(ms.date) - new Date()) / 86400000) : null;
 
@@ -700,7 +700,52 @@ function Dashboard({ projects, onOpen }) {
 
 // ── Main App ──────────────────────────────────────────────────────────────────
 export default function App() {
-  const [projects, setProjects] = useState(()=>buildProjects());
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadProjects = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.from('projects').select('*').order('id');
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        const seed = buildProjects();
+        await Promise.all(seed.map(p =>
+          supabase.from('projects').upsert({ id: p.id, data: p, updated_at: new Date().toISOString() })
+        ));
+        setProjects(seed);
+      } else {
+        setProjects(data.map(row => row.data));
+      }
+    } catch (err) {
+      console.error('Error loading projects:', err);
+      setProjects(buildProjects());
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const saveProject = useCallback(async (updatedProject) => {
+    try {
+      await supabase.from('projects').upsert({
+        id: updatedProject.id,
+        data: updatedProject,
+        updated_at: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error('Error saving project:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProjects();
+    const channel = supabase
+      .channel('projects-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+        loadProjects();
+      })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [loadProjects]);
   const [page, setPage] = useState('thisweek');
   const [activeId, setActiveId] = useState(null);
   const [search, setSearch] = useState('');
@@ -717,7 +762,17 @@ export default function App() {
   const goHome      = () =>{setActiveId(null);setPage('thisweek');};
   const activeProject = projects.find(p=>p.id===activeId);
 
-  const mutate = fn=>setProjects(ps=>ps.map(p=>p.id===activeId?fn(p):p));
+  const mutate = fn => {
+    setProjects(ps => {
+      const next = ps.map(p => {
+        if (p.id !== activeId) return p;
+        const updated = fn(p);
+        saveProject(updated);
+        return updated;
+      });
+      return next;
+    });
+  };
   const updC  = (sId,cId,u)     => mutate(p=>({...p,sections:{...p.sections,[sId]:p.sections[sId].map(c=>c.id===cId?u:c)}}));
   const addC  = sId              => mutate(p=>({...p,sections:{...p.sections,[sId]:[...p.sections[sId],mkRow()]}}));
   const delC  = (sId,cId)        => mutate(p=>({...p,sections:{...p.sections,[sId]:p.sections[sId].filter(c=>c.id!==cId)}}));
@@ -740,13 +795,20 @@ export default function App() {
     milestones: (p.milestones || initMilestones(p)).filter(m => m.id !== msId)
   }));
 
-  const gTog  = (pId,sId,cId,tId,type)=>setProjects(ps=>ps.map(p=>p.id!==pId?p:{...p,sections:{...p.sections,[sId]:p.sections[sId].map(c=>c.id!==cId?c:{...c,tasks:c.tasks.map(t=>t.id!==tId?t:type==='week'?{...t,manualFlag:!t.manualFlag}:{...t,status:t.status==='Completed'?'In Progress':'Completed'})})}}));
+  const gTog  = (pId,sId,cId,tId,type)=>setProjects(ps=>ps.map(p=>{
+    if(p.id!==pId) return p;
+    const updated = {...p,sections:{...p.sections,[sId]:p.sections[sId].map(c=>c.id!==cId?c:{...c,tasks:c.tasks.map(t=>t.id!==tId?t:type==='week'?{...t,manualFlag:!t.manualFlag}:{...t,status:t.status==='Completed'?'In Progress':'Completed'})})}};
+    saveProject(updated);
+    return updated;
+  }));
 
   const addProject=()=>{
     if(!newName.trim()) return;
     const colors=[T.gold,'#1E1E5A','#E07B39','#5B4FCF','#2D6A4F','#B5451B','#7B5EA7','#0E6B5E'];
     const secs={}; SECTION_META.forEach(s=>{secs[s.id]=[];});
-    setProjects(ps=>[...ps,{id:uid(),name:newName.trim(),color:colors[ps.length%colors.length],stage:newStage,purchaseDate:'',settlementDate:'',sections:secs}]);
+    const newProj = {id:uid(),name:newName.trim(),color:colors[projects.length%colors.length],stage:newStage,purchaseDate:'',settlementDate:'',sections:secs};
+    setProjects(ps=>[...ps,newProj]);
+    saveProject(newProj);
     setNewName(''); setShowAdd(false);
   };
 
@@ -813,6 +875,18 @@ export default function App() {
             );
           })}
           {filterPersons.length>0&&<button onClick={()=>setFilterPersons([])} style={{ padding:'5px 12px', borderRadius:20, fontSize:11, cursor:'pointer', fontFamily:F.body, border:'1.5px solid #FCA5A5', background:'#FEF2F2', color:'#991B1B' }}>✕ Clear</button>}
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div style={{ fontFamily:F.body, background:T.navy, minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:16 }}>
+        <div style={{ fontSize:28, fontWeight:400, color:T.white, fontFamily:F.heading, letterSpacing:'0.1em' }}>SALT</div>
+        <div style={{ fontSize:11, color:T.gold, fontFamily:F.body, letterSpacing:'0.15em', textTransform:'uppercase' }}>Loading projects…</div>
+        <div style={{ width:200, height:3, background:T.navy3, borderRadius:10, overflow:'hidden', marginTop:8 }}>
+          <div style={{ height:'100%', width:'60%', background:T.gold, borderRadius:10, animation:'none' }} />
         </div>
       </div>
     );
