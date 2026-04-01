@@ -266,7 +266,7 @@ function NewTaskRow({ onSave, onCancel }) {
 }
 
 // ── Consultant block ──────────────────────────────────────────────────────────
-function ConsultantBlock({ c, secColor, onUpdate, onAddTask, onUpdateTask, onDeleteTask, onToggleWeek, onToggleComplete, onDelete }) {
+function ConsultantBlock({ c, secColor, isMobile, onUpdate, onAddTask, onUpdateTask, onDeleteTask, onToggleWeek, onToggleComplete, onDelete }) {
   const [editMeta, setEditMeta] = useState(false);
   const [meta, setMeta] = useState({ label:c.label, name:c.name, comments:c.comments });
   const [hovered, setHovered] = useState(false);
@@ -279,9 +279,9 @@ function ConsultantBlock({ c, secColor, onUpdate, onAddTask, onUpdateTask, onDel
   return (
     <div onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>{setHovered(false);setConfirmDel(false);}}
       style={{ borderBottom:'1px solid #EEF0F5', background:twk>0?'rgba(201,168,76,0.04)':'white', transition:'background 0.15s' }}>
-      <div style={{ display:'grid', gridTemplateColumns:window.innerWidth<768?'1fr':'200px 1fr 1fr', minHeight:'auto' }}>
+      <div style={{ display:'grid', gridTemplateColumns:isMobile?'1fr':'200px 1fr 1fr', minHeight:'auto' }}>
         {/* Col 1 */}
-        <div style={{ padding:'10px 14px', borderRight:window.innerWidth>=768?'1px solid #EEF0F5':'none', borderBottom:window.innerWidth<768?'1px solid #EEF0F5':'none', background:twk>0?'rgba(201,168,76,0.07)':'#FAFBFC', display:'flex', flexDirection:'column', gap:4 }}>
+        <div style={{ padding:'10px 14px', borderRight:isMobile?'none':'1px solid #EEF0F5', borderBottom:isMobile?'1px solid #EEF0F5':'none', background:twk>0?'rgba(201,168,76,0.07)':'#FAFBFC', display:'flex', flexDirection:'column', gap:4 }}>
           {editMeta ? (
             <>
               <input value={meta.label} onChange={e=>setMeta(d=>({...d,label:e.target.value}))} placeholder="Role/type" style={{ ...inputSty, fontWeight:700, color:secColor }} />
@@ -313,7 +313,7 @@ function ConsultantBlock({ c, secColor, onUpdate, onAddTask, onUpdateTask, onDel
           )}
         </div>
         {/* Col 2 */}
-        <div style={{ padding:'10px 14px', borderRight:window.innerWidth>=768?'1px solid #EEF0F5':'none', borderBottom:window.innerWidth<768?'1px solid #EEF0F5':'none' }}>
+        <div style={{ padding:'10px 14px', borderRight:isMobile?'none':'1px solid #EEF0F5', borderBottom:isMobile?'1px solid #EEF0F5':'none' }}>
           {editMeta ? (
             <textarea value={meta.comments} onChange={e=>setMeta(d=>({...d,comments:e.target.value}))} placeholder="General comments, status notes, background info..." rows={4}
               style={{ fontFamily:F.body, fontSize:11, border:'1px solid #E5E7EB', borderRadius:5, padding:'5px 8px', outline:'none', resize:'vertical', width:'100%', boxSizing:'border-box', color:'#4B5563' }} />
@@ -458,7 +458,7 @@ function MilestoneTimeline({ milestones, onUpdate, onAdd, onDelete }) {
 }
 
 // ── Section block ─────────────────────────────────────────────────────────────
-function SectionBlock({ sec, consultants, purchaseDate, settlementDate, onUpdateC, onAddC, onDeleteC, onAddTask, onUpdateTask, onDeleteTask, onToggleWeek, onToggleComplete, collapsed, onToggleCollapse }) {
+function SectionBlock({ sec, consultants, purchaseDate, settlementDate, isMobile, onUpdateC, onAddC, onDeleteC, onAddTask, onUpdateTask, onDeleteTask, onToggleWeek, onToggleComplete, collapsed, onToggleCollapse }) {
   const twk    = consultants.flatMap(c=>c.tasks).filter(t=>isThisWeek(t)).length;
   const active = consultants.flatMap(c=>c.tasks).filter(t=>t.action?.trim()).length;
   return (
@@ -486,7 +486,7 @@ function SectionBlock({ sec, consultants, purchaseDate, settlementDate, onUpdate
             ))}
           </div>}
           {consultants.map(c=>(
-            <ConsultantBlock key={c.id} c={c} secColor={sec.color}
+            <ConsultantBlock key={c.id} c={c} secColor={sec.color} isMobile={isMobile}
               onUpdate={u=>onUpdateC(sec.id,c.id,u)} onDelete={()=>onDeleteC(sec.id,c.id)}
               onAddTask={(cId,td)=>onAddTask(sec.id,cId,td)}
               onUpdateTask={(cId,tId,u)=>onUpdateTask(sec.id,cId,tId,u)}
@@ -909,7 +909,7 @@ export default function App() {
   return (
     <div style={{ fontFamily:F.body, background:T.bg, minHeight:'100vh' }}>
 
-      {/* ── Nav bar ── */}}
+      {/* ── Nav bar ── */}
       <div style={{ background:T.navy, padding:isMobile?'0 14px':'0 28px', display:'flex', alignItems:'center', borderBottom:`2px solid ${T.gold}`, boxShadow:'0 2px 20px rgba(10,15,46,0.4)', position:'sticky', top:0, zIndex:200 }}>
         <div onClick={()=>{goHome();setNavOpen(false);}} style={{ display:'flex', alignItems:'center', gap:10, padding:isMobile?'8px 0':'12px 0', cursor:'pointer' }}>
           <img src={LOGO_URI} alt="SALT" style={{ width:isMobile?32:44, height:isMobile?32:44, objectFit:'contain', filter:'brightness(0) invert(1)' }} />
@@ -1087,6 +1087,7 @@ export default function App() {
               <SectionBlock key={sec.id} sec={sec}
                 consultants={activeProject.sections[sec.id]||[]}
                 purchaseDate={activeProject.purchaseDate} settlementDate={activeProject.settlementDate}
+                isMobile={isMobile}
                 onUpdateC={(sId,cId,u)=>updC(sId,cId,u)} onAddC={()=>addC(sec.id)} onDeleteC={(sId,cId)=>delC(sId,cId)}
                 onAddTask={(sId,cId,td)=>addT(sId,cId,td)} onUpdateTask={(sId,cId,tId,u)=>updT(sId,cId,tId,u)} onDeleteTask={(sId,cId,tId)=>delT(sId,cId,tId)}
                 onToggleWeek={(sId,cId,tId)=>togW(sId,cId,tId)} onToggleComplete={(sId,cId,tId)=>togC(sId,cId,tId)}
