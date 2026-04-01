@@ -10,7 +10,7 @@ const SKY_LT  = "#E8F3FC";
 const OFF_BG  = "#F4F6FA";
 
 const PERSON_LIST = [
-  { id:"CS",    label:"Carson Salt" },
+  { id:"CS",    label:"Carson Bolt" },
   { id:"SS",    label:"Shannon Sharp" },
   { id:"AL",    label:"Assem Labib" },
   { id:"CB/SS", label:"Carson & Shannon" },
@@ -866,7 +866,7 @@ function WeekRow({item,onToggleWeek,onToggleComplete,onNavigate}){
       </div>
       <div style={{display:"flex",gap:5,flexShrink:0}}>
         <button onClick={()=>onToggleWeek(item.projectId,item.secId,item.cId,item.tId)} style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"sans-serif",background:SKY_LT,border:`1.5px solid ${SKY}`,color:"#1E3A5F"}}>★ Remove</button>
-        <button onClick={()=>onNavigate(item.projectId)} style={{padding:"3px 10px",borderRadius:20,fontSize:10,cursor:"pointer",fontFamily:"sans-serif",background:"none",border:"1px solid #E5E7EB",color:"#6B7280"}}>Open →</button>
+        <button type="button" onClick={()=>onNavigate(item.projectId)} style={{padding:"3px 10px",borderRadius:20,fontSize:10,cursor:"pointer",fontFamily:"sans-serif",background:"none",border:"1px solid #E5E7EB",color:"#6B7280"}}>Open →</button>
       </div>
     </div>
   );
@@ -904,6 +904,10 @@ export default function App(){
     setProjects(ps=>[...ps,{id:uid(),name:newName.trim(),color:cs[ps.length%cs.length],stage:newStage,purchaseDate:"",settlementDate:"",sections:secs}]);
     setNewName("");setShowAdd(false);
   };
+
+  // Single reliable navigation function
+  const goToProject = (id) => { setActiveProject(id); setView("project"); };
+  const goBack = () => { setActiveProject(null); setView("projects"); };
 
   const togglePerson=pid=>setFilterPersons(prev=>prev.includes(pid)?prev.filter(p=>p!==pid):[...prev,pid]);
 
@@ -1053,12 +1057,12 @@ export default function App(){
                 <div key={p.id} style={{marginBottom:18}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                     <div style={{width:9,height:9,borderRadius:"50%",background:p.color}}/>
-                    <span style={{fontSize:12,fontWeight:700,color:p.color,textTransform:"uppercase",letterSpacing:"0.05em"}}>{p.name}</span>
+                    <button type="button" onClick={()=>goToProject(p.id)} style={{fontSize:12,fontWeight:700,color:p.color,textTransform:"uppercase",letterSpacing:"0.05em",background:"none",border:"none",cursor:"pointer",padding:0}}>{p.name}</button>
                     <span style={{fontSize:11,color:"#9CA3AF",fontFamily:"sans-serif"}}>{items.filter(i=>i.status==="Completed").length}/{items.length} done</span>
                     <div style={{flex:1,height:1,background:"#E5E7EB"}}/>
-                    <button onClick={()=>{setActiveProject(p.id);setView("project");}} style={{fontSize:11,color:SKY,background:"none",border:"none",cursor:"pointer",fontWeight:600,fontFamily:"sans-serif"}}>Open Project →</button>
+                    <button type="button" onClick={()=>goToProject(p.id)} style={{fontSize:11,color:SKY,background:"none",border:"none",cursor:"pointer",fontWeight:600,fontFamily:"sans-serif"}}>Open Project →</button>
                   </div>
-                  {items.map(item=><WeekRow key={`${item.projectId}-${item.secId}-${item.cId}-${item.tId}`} item={item} onToggleWeek={(pId,sId,cId,tId)=>gTog(pId,sId,cId,tId,"week")} onToggleComplete={(pId,sId,cId,tId)=>gTog(pId,sId,cId,tId,"done")} onNavigate={id=>{setActiveProject(id);setView("project");}}/>)}
+                  {items.map(item=><WeekRow key={`${item.projectId}-${item.secId}-${item.cId}-${item.tId}`} item={item} onToggleWeek={(pId,sId,cId,tId)=>gTog(pId,sId,cId,tId,"week")} onToggleComplete={(pId,sId,cId,tId)=>gTog(pId,sId,cId,tId,"done")} onNavigate={id=>goToProject(id)}/>)}
                 </div>
               );
             })}
@@ -1101,8 +1105,8 @@ export default function App(){
                 const all=SECTION_META.flatMap(s=>(p.sections[s.id]||[]).flatMap(c=>c.tasks));
                 const act=all.filter(t=>t.action?.trim()),dn=all.filter(t=>t.status==="Completed"),tw=all.filter(t=>t.thisWeek&&t.action?.trim()).length,hi=all.filter(t=>t.priority==="High"&&t.status!=="Completed"&&t.action?.trim()).length;
                 return(
-                  <div key={p.id} onClick={()=>{setActiveProject(p.id);setView("project");}}
-                    style={{background:"white",border:"1.5px solid #E8ECF0",borderTop:`4px solid ${p.color}`,borderRadius:10,padding:"16px 18px",cursor:"pointer",userSelect:"none"}}
+                  <button type="button" key={p.id} onClick={()=>goToProject(p.id)}
+                    style={{background:"white",border:"1.5px solid #E8ECF0",borderTop:`4px solid ${p.color}`,borderRadius:10,padding:"16px 18px",cursor:"pointer",userSelect:"none",width:"100%",textAlign:"left",display:"block"}}
                     onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 20px rgba(45,45,105,0.14)"}
                     onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}>
                     <div style={{display:"flex",justifyContent:"space-between",marginBottom:10,pointerEvents:"none"}}>
@@ -1123,7 +1127,7 @@ export default function App(){
                     </div>
                     <div style={{marginTop:10,height:3,background:"#EEF0F5",borderRadius:10,pointerEvents:"none"}}><div style={{height:"100%",width:`${act.length?(dn.length/act.length)*100:0}%`,background:p.color,borderRadius:10}}/></div>
                     <div style={{marginTop:8,fontSize:11,color:SKY,fontWeight:600,fontFamily:"sans-serif",textAlign:"right",pointerEvents:"none"}}>Open project →</div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -1131,10 +1135,10 @@ export default function App(){
         )}
 
         {/* ══ SINGLE PROJECT ══ */}
-        {activeProject&&cur&&(
+        {view==="project"&&activeProject&&cur&&(
           <>
             <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:6}}>
-              <button onClick={()=>setActiveProject(null)} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:SKY,fontWeight:600,fontFamily:"sans-serif"}}>← Back</button>
+              <button type="button" onClick={goBack} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:SKY,fontWeight:600,fontFamily:"sans-serif"}}>← Back</button>
               <div style={{width:1,height:20,background:"#E5E7EB"}}/>
               <div style={{width:10,height:10,borderRadius:"50%",background:cur.color}}/>
               <h2 style={{margin:0,fontSize:18,color:INDIGO3}}>{cur.name}</h2>
