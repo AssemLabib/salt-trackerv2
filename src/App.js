@@ -350,13 +350,11 @@ function MilestoneTimeline({ milestones, onUpdate, onAdd, onDelete }) {
     background: 'white', color: '#1F2937',
   };
 
-  const today = new Date().toISOString().slice(0,10);
-
+  
   return (
     <div style={{ marginBottom: 20, background: 'white', borderRadius: 12, padding: '16px 20px', border: '1px solid #E8ECF5', boxShadow: '0 2px 8px rgba(10,15,46,0.06)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: T.navy, textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: F.body }}>Key Milestones</span>
-        <div style={{ flex: 1, height: 1, background: T.navy3 }} />
+                <div style={{ flex: 1, height: 1, background: T.navy3 }} />
         <button onClick={() => { setShowAdd(true); setNewMs({ name: '', date: '', status: 'Upcoming' }); }}
           style={{ ...btn('dark'), fontSize: 10, padding: '3px 10px', background: 'rgba(201,168,76,0.1)', border: `1px solid ${T.gold}44`, color: T.gold }}>
           + Add Milestone
