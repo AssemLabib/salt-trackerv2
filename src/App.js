@@ -2,11 +2,12 @@ import React, { useState, useMemo, useRef } from 'react';
 import {
   uid, mkTask, mkRow, buildProjects,
   PERSON_LIST, PRIORITIES, STATUSES, STAGES, SECTION_META,
-  } from './data';
+  priCfg, stsCfg,
+} from './data';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const T = {
-  navy:    '#0A0F2E',   // deepest nav
+  navy:    '#0A0F2E',   // deepest navy
   navy2:   '#111638',   // card backgrounds
   navy3:   '#1A2050',   // borders, subtle fills
   navy4:   '#242B5E',   // hover states
@@ -350,11 +351,13 @@ function MilestoneTimeline({ milestones, onUpdate, onAdd, onDelete }) {
     background: 'white', color: '#1F2937',
   };
 
-  
+  const today = new Date().toISOString().slice(0,10);
+
   return (
     <div style={{ marginBottom: 20, background: 'white', borderRadius: 12, padding: '16px 20px', border: '1px solid #E8ECF5', boxShadow: '0 2px 8px rgba(10,15,46,0.06)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <div style={{ flex: 1, height: 1, background: T.navy3 }} />
+        <span style={{ fontSize: 10, fontWeight: 700, color: T.navy, textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: F.body }}>Key Milestones</span>
+        <div style={{ flex: 1, height: 1, background: T.navy3 }} />
         <button onClick={() => { setShowAdd(true); setNewMs({ name: '', date: '', status: 'Upcoming' }); }}
           style={{ ...btn('dark'), fontSize: 10, padding: '3px 10px', background: 'rgba(201,168,76,0.1)', border: `1px solid ${T.gold}44`, color: T.gold }}>
           + Add Milestone
@@ -371,7 +374,8 @@ function MilestoneTimeline({ milestones, onUpdate, onAdd, onDelete }) {
 
         {milestones.map((ms, idx) => {
           const cfg = msCfg[ms.status] || msCfg['Upcoming'];
-                    const isEditing = editingId === ms.id;
+          const isPast = ms.date && ms.date < today;
+          const isEditing = editingId === ms.id;
           const daysUntil = ms.date ? Math.ceil((new Date(ms.date) - new Date()) / 86400000) : null;
 
           return (
